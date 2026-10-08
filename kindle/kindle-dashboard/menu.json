@@ -1,0 +1,53 @@
+{
+  "items": [
+    {
+      "name": "启动长期看板",
+      "priority": 1,
+      "action": "./bin/start-dashboard.sh",
+      "exitmenu": true,
+      "status": false
+    },
+    {
+      "name": "立即刷新（运行中）",
+      "priority": 2,
+      "action": "./bin/refresh-now.sh",
+      "exitmenu": true,
+      "status": false
+    },
+    {
+      "name": "停止并恢复 Kindle 界面",
+      "priority": 3,
+      "action": "setsid ./bin/stop-dashboard.sh",
+      "exitmenu": true,
+      "status": false
+    },
+    {
+      "name": "检查并安装 Wi-Fi 更新",
+      "priority": 4,
+      "action": "setsid ./bin/update-and-restart.sh",
+      "exitmenu": true,
+      "status": false
+    },
+    {
+      "name": "上传诊断日志",
+      "priority": 5,
+      "action": "setsid ./bin/upload-log.sh --notify",
+      "exitmenu": true,
+      "status": false
+    },
+    {
+      "name": "查看运行状态",
+      "priority": 6,
+      "action": "./bin/status.sh",
+      "exitmenu": true,
+      "status": false
+    },
+    {
+      "name": "诊断：显示内置测试图",
+      "priority": 7,
+      "action": "./bin/display-test.sh",
+      "exitmenu": true,
+      "status": false
+    }
+  ]
+}

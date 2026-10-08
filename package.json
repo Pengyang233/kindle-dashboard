@@ -1,0 +1,22 @@
+{
+  "name": "kindle-dashboard",
+  "version": "1.0.6",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test",
+    "setup-local": "node scripts/setup-local.js",
+    "check:public": "node scripts/check-public-content.js",
+    "prepare-demo": "node scripts/render-demo.js",
+    "stage-client-release": "node scripts/stage-client-release.js"
+  },
+  "dependencies": {
+    "lunar-javascript": "1.7.7"
+  },
+  "license": "MIT"
+}

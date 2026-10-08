@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.13.1
+          package-manager-cache: false
+
+      - name: Set up Go for Gitleaks
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: 1.24.0
+          cache: false
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run project tests
+        run: npm test
+
+      - name: Check shell and JSON files
+        run: |
+          find kindle/kindle-dashboard/bin kindle/kindle-dashboard/lib -type f -name '*.sh' -exec sh -n {} +
+          sh -n kindle/kindle-dashboard/config.example.sh
+          node -e "JSON.parse(require('node:fs').readFileSync('kindle/kindle-dashboard/menu.json', 'utf8'))"
+
+      - name: Check patch whitespace
+        run: |
+          git diff --check
+          git diff-tree --check --root HEAD
+
+      - name: Build and inspect Kindle package
+        run: |
+          sh scripts/build-kindle-package.sh
+          package_zip="dist/kindle-dashboard-v$(cat kindle/kindle-dashboard/VERSION).zip"
+          test -f "$package_zip"
+          unzip -t "$package_zip"
+          unzip -Z1 "$package_zip" | grep -Fxq 'kindle-dashboard/config.example.sh'
+          if unzip -Z1 "$package_zip" | grep -Fxq 'kindle-dashboard/config.sh'; then
+            echo 'The device-local config.sh must not be packaged.' >&2
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/kindle-package"
+          unzip -q "$package_zip" -d "$RUNNER_TEMP/kindle-package"
+          test -f "$RUNNER_TEMP/kindle-package/kindle-dashboard/VERSION"
+          test ! -e "$RUNNER_TEMP/kindle-package/kindle-dashboard/config.sh"
+
+      - name: Check public content
+        run: npm run check:public
+
+      - name: Install Gitleaks
+        run: go install github.com/gitleaks/gitleaks/v8@v8.30.1
+
+      - name: Scan public source with redacted findings
+        run: gitleaks git . --redact --no-banner

@@ -1,0 +1,16 @@
+node_modules/
+.env*
+!.env.example
+kindle/kindle-dashboard/config.sh
+kindle/kindle-dashboard/state/
+kindle/kindle-dashboard/dashboard.log*
+runtime/
+dist/
+work/
+outputs/
+coverage/
+.DS_Store
+*.pem
+*.tmp
+*.new
+npm-debug.log*
