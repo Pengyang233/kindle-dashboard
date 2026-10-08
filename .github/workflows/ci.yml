@@ -68,7 +68,7 @@ jobs:
         run: npm run check:public
 
       - name: Install Gitleaks
-        run: go install github.com/gitleaks/gitleaks/v8@v8.30.1
+        run: go install github.com/zricethezav/gitleaks/v8@v8.30.1
 
       - name: Scan public source with redacted findings
         run: gitleaks git . --redact --no-banner
