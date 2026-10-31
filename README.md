@@ -19,8 +19,10 @@
 ## 需要准备什么
 
 - 一台安装了 Node.js 22.13+ 和 Google Chrome 的 Mac。
-- 一台已经越狱、装有 KUAL 和 FBInk 的 Kindle Paperwhite 4。
+- 一台装有 KUAL 和 FBInk 的越狱 Kindle。当前只在 Kindle Paperwhite 4、固件 5.18.1.1.1 上验证过。
 - Kindle 和 Mac 通过可信的家庭局域网通信。
+
+如果还在准备 Kindle，请先看[设备准备与首次运行](docs/first-run.md)。越狱方法取决于具体机型和固件；本项目不会替你越狱。
 
 ## 启动 Mac 服务
 
@@ -77,9 +79,9 @@ npm start
 
 ## 安装到 Kindle
 
-从 [v1.0.6 Release](https://github.com/Pengyang233/kindle-dashboard/releases/tag/v1.0.6) 下载 `kindle-dashboard-v1.0.6.zip`。首次安装需要把客户端文件复制到 Kindle；[离线显示检查说明](kindle/SMOKE-TEST.md)写了 USB 复制路径和 KUAL 测试步骤。文件装好并配置服务后，日常取图通过 Wi-Fi 完成。
+首次部署按[设备准备与首次运行](docs/first-run.md)走一遍：确认 Kindle 运行条件、复制客户端、检查离线显示、配置 Mac 服务并验证设备连接。首次安装需要 USB；完成后，取图通过 Wi-Fi 进行。
 
-在 Kindle 上将 `config.example.sh` 复制为仅保存在设备上的 `config.sh`，填写 Mac 的 `DASHBOARD_BASE_URL`，并将 `DEVICE_TOKEN` 设为 `.env.local` 中的 `DASHBOARD_DEVICE_TOKEN`。第一次验证时保持 `AUTO_UPDATE_ON_START=0`。然后在 KUAL 中先运行内置测试图，再手动启动看板。
+如果只想单独检查 KUAL 是否能调用 FBInk 显示图片，请看[离线显示检查说明](kindle/SMOKE-TEST.md)。
 
 ## 更新方式
 
