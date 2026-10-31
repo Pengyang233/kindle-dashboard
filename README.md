@@ -1,34 +1,53 @@
 # Kindle Dashboard
 
-Kindle Dashboard 在 Mac mini 上获取天气并生成适合 Kindle Paperwhite 4 的 `1072×1448` PNG。越狱 Kindle 通过 Wi-Fi 下载图片，再由 FBInk 显示；页面渲染和数据请求都留在 Mac 上。
+[![Latest release](https://img.shields.io/github/v/release/Pengyang233/kindle-dashboard)](https://github.com/Pengyang233/kindle-dashboard/releases/latest)
+[![CI](https://img.shields.io/github/actions/workflow/status/Pengyang233/kindle-dashboard/ci.yml?branch=main)](https://github.com/Pengyang233/kindle-dashboard/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-## 发布状态
+这是一个给越狱 Kindle 用的小看板：Mac mini 获取天气、读取本机状态并生成黑白 PNG；Kindle 通过 Wi-Fi 下载图片，再由 FBInk 显示。Kindle 端不运行浏览器，启动由 KUAL 手动控制。本项目不会替你越狱 Kindle。
 
-仓库版本 `1.0.6` 是公开源码快照，尚未在真实 Kindle 上验证，也不是稳定设备版。原始 `1.0.5` 的真实设备使用经历仅是历史记录，不代表 `1.0.6` 已经过硬件验证。设备更新和部署迁移暂缓；请先把当前版本当作需要自行审查的源码。
+![Kindle Dashboard 内置测试画面](kindle/kindle-dashboard/assets/frame.png)
 
-项目面向已越狱的 Paperwhite 4、KUAL 和 FBInk。Kindle 启动保持手动：复制客户端后，在 KUAL 中选择启动。Mac 渲染器需要 Node.js 22.13+ 和 Google Chrome。自动化构建运行在 Ubuntu 上只验证源码、脚本与 ZIP，不表示服务或 Kindle 客户端兼容 Linux。PNG 的视觉检查在本地 Mac 完成。
+*上图是内置测试画面，使用固定示例数据。*
 
-## Mac 服务
+## 当前版本
 
-安装依赖并初始化本机配置：
+[v1.0.6](https://github.com/Pengyang233/kindle-dashboard/releases/tag/v1.0.6) 已在 Kindle Paperwhite 4、固件 5.18.1.1.1、KUAL 和 FBInk 组合上完成实机验证。其他 Kindle 型号和固件尚未验证；完整范围见[发布状态说明](docs/release-status.md)。
+
+画面包含日期、节气、天气与三日预报，以及 Mac 的 CPU、内存和磁盘使用情况。网络或天气服务短暂不可用时，服务会保留上一张有效画面。
+
+## 需要准备什么
+
+- 一台安装了 Node.js 22.13+ 和 Google Chrome 的 Mac。
+- 一台已经越狱、装有 KUAL 和 FBInk 的 Kindle Paperwhite 4。
+- Kindle 和 Mac 通过可信的家庭局域网通信。
+
+## 启动 Mac 服务
 
 ```sh
+git clone https://github.com/Pengyang233/kindle-dashboard.git
+cd kindle-dashboard
 npm ci
 npm run setup-local
-npm run stage-client-release
 ```
 
-编辑本机忽略文件 `.env.local`，填写天气纬度和经度。示例城市为 `Example`，坐标留空；请换成自己的天气设置。Open-Meteo 会收到这些坐标以返回天气数据。
+编辑 `.env.local`，填写天气坐标，也可以修改城市名和时区。天气坐标会发送给 [Open-Meteo](https://open-meteo.com/en/docs) 以获取预报。
+
+服务默认只监听 Mac 本机。如果 Kindle 要从局域网访问，在 `.env.local` 中将 `HOST` 设为 `0.0.0.0`，并将 `DASHBOARD_CONTROL_ORIGINS` 设为浏览器访问控制页时使用的完整来源，例如 `http://192.0.2.10:8787`。这个 IP 只是文档示例，请换成 Mac 的实际局域网地址。
+
+然后暂存客户端并启动服务：
 
 ```sh
+npm run stage-client-release
 npm start
 ```
 
-默认只监听本机的 `127.0.0.1:8787`。预览地址为 `http://127.0.0.1:8787/render`；控制页为 `http://127.0.0.1:8787/control`，需要 HTTP Basic 凭据。`npm run setup-local` 在 `.env.local` 中生成本地设备令牌和管理员密码，不会在终端显示凭据。
+本机预览：
 
-若 Kindle 或浏览器需要从局域网访问服务，编辑 `.env.local`，将 `HOST` 设为 `0.0.0.0`，并把 `DASHBOARD_CONTROL_ORIGINS` 改为浏览器实际使用的完整来源，例如 `http://192.0.2.10:8787`。`192.0.2.10` 是文档示例，部署时请替换为 Mac 的局域网地址。仅在可信局域网内使用；不要把端口转发到公网，也不要假设项目提供公共服务器。
+- 画面：<http://127.0.0.1:8787/render>
+- 控制页：<http://127.0.0.1:8787/control>（需要 `.env.local` 中的 HTTP Basic 凭据）
 
-在 macOS 上安装 launchd 服务：
+需要在 Mac 登录后自动运行时，可以安装 launchd 服务：
 
 ```sh
 ./scripts/install-macos-service.sh
@@ -40,46 +59,54 @@ npm start
 ./scripts/uninstall-macos-service.sh
 ```
 
-服务仍由本机启动的进程读取仓库根目录中的 `.env.local`。不要把其中的令牌或密码写入 plist、提交到 Git 或打包进客户端。
+`npm run setup-local` 会在 `.env.local` 中生成设备令牌和管理员密码，不会把它们打印到终端。这个文件只留在本机，不要提交或打包。
 
-### 配置项
+### 常用配置
 
-| 变量 | 用途 | 默认值 |
+| 配置 | 用途 | 默认值 |
 | --- | --- | --- |
-| `DASHBOARD_CITY` | 画面显示的城市名 | `Example` |
-| `DASHBOARD_TIMEZONE` | 日期和时间使用的时区 | `Asia/Shanghai` |
-| `WEATHER_LATITUDE`、`WEATHER_LONGITUDE` | Open-Meteo 查询坐标 | 空，需填写 |
-| `HOST`、`PORT` | 监听地址和端口 | `127.0.0.1`、`8787` |
-| `CLIENT_DISTRIBUTION_DIR` | 固定客户端更新快照目录，由暂存工具写入本地配置 | 暂存后生成 |
-| `DASHBOARD_DEVICE_ID` | 设备标识 | `pw4` |
-| `DASHBOARD_DEVICE_TOKEN` | Kindle 请求图片、设备控制和日志接口的令牌 | 初始化时生成 |
-| `DASHBOARD_ADMIN_USER`、`DASHBOARD_ADMIN_PASSWORD` | 控制页 HTTP Basic 凭据 | `admin`、初始化时生成密码 |
-| `DASHBOARD_CONTROL_ORIGINS` | 控制请求允许的完整来源列表，以逗号分隔 | 本机地址和 `localhost` |
+| `DASHBOARD_CITY`、`DASHBOARD_TIMEZONE` | 画面显示的城市名和时区 | `Example`、`Asia/Shanghai` |
+| `WEATHER_LATITUDE`、`WEATHER_LONGITUDE` | 天气查询位置 | 空，需填写 |
+| `HOST`、`PORT` | 服务监听地址和端口 | `127.0.0.1`、`8787` |
+| `DASHBOARD_DEVICE_ID` | Kindle 设备标识 | `pw4` |
+| `DASHBOARD_DEVICE_TOKEN` | Kindle 请求服务的令牌 | 初始化时生成 |
+| `DASHBOARD_ADMIN_USER`、`DASHBOARD_ADMIN_PASSWORD` | 控制页登录凭据 | `admin`、初始化时生成 |
+| `DASHBOARD_CONTROL_ORIGINS` | 控制页允许发起操作的浏览器来源 | 本机地址和 `localhost` |
 
-所有配置名也列在 [.env.example](.env.example) 中。`npm run setup-local` 不会覆盖已有 `.env.local`。
+完整配置名见 [`.env.example`](.env.example)。客户端快照目录由 `npm run stage-client-release` 写入本地配置。
 
-## Kindle 客户端
+## 安装到 Kindle
 
-生成客户端 ZIP：
+从 [v1.0.6 Release](https://github.com/Pengyang233/kindle-dashboard/releases/tag/v1.0.6) 下载 `kindle-dashboard-v1.0.6.zip`。首次安装需要把客户端文件复制到 Kindle；[离线显示检查说明](kindle/SMOKE-TEST.md)写了 USB 复制路径和 KUAL 测试步骤。文件装好并配置服务后，日常取图通过 Wi-Fi 完成。
+
+在 Kindle 上将 `config.example.sh` 复制为仅保存在设备上的 `config.sh`，填写 Mac 的 `DASHBOARD_BASE_URL`，并将 `DEVICE_TOKEN` 设为 `.env.local` 中的 `DASHBOARD_DEVICE_TOKEN`。第一次验证时保持 `AUTO_UPDATE_ON_START=0`。然后在 KUAL 中先运行内置测试图，再手动启动看板。
+
+## 更新方式
+
+KUAL 启动保持手动，不会开机自动运行。服务从 `CLIENT_DISTRIBUTION_DIR` 指向的固定快照提供客户端文件，不会直接分发工作区里的改动。更新客户端时，修改远程分发文件后提高 `kindle/kindle-dashboard/VERSION` 和 `config.xml` 中的版本号，再运行 `npm run stage-client-release`。暂存不会联系 Kindle；重启服务后才会选用新的快照。
+
+客户端更新器只处理列入清单的 17 个文件，设备私有的 `config.sh` 不在清单内。SHA-256 和文件大小检查可以发现传输损坏，但不能证明文件发布者身份。
+
+## 安全与隐私
+
+服务使用没有 TLS 的 HTTP，只应运行在可信的局域网内。不要把 8787 端口转发到公网。控制页密码和设备令牌会经过这条连接，能监听或篡改局域网流量的人可能读取凭据或替换响应。
+
+真实配置、设备 `config.sh` 和运行日志不要提交到 GitHub。第三方组件和图标许可见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)；更完整的网络边界见 [安全模型](docs/security-model.md)。发现安全问题时请先阅读 [`SECURITY.md`](SECURITY.md)。
+
+## 开发与反馈
 
 ```sh
-./scripts/build-kindle-package.sh
+npm test
+npm run check:public
+sh scripts/build-kindle-package.sh
 ```
 
-把 ZIP 中的 `kindle-dashboard` 目录复制到 Kindle 的 `extensions` 目录。ZIP 包含 `config.example.sh`，不包含设备私有的 `config.sh`。在 Kindle 上手动复制示例文件并命名为 `config.sh`，再填写 Mac 服务地址、设备 ID 和与 `DASHBOARD_DEVICE_TOKEN` 一致的令牌。不要提交真实配置。KUAL 启动入口保持手动，不启用开机自启。
+GitHub Actions 还会检查 Shell 和 JSON、构建客户端包并扫描公开内容。CI 运行在 Ubuntu 上；它验证源码和打包流程，不代表服务器已在 Linux 上验证，也不代表其他 Kindle 型号或固件兼容。
 
-客户端更新清单仍限定为 17 个文件，并逐个比较 SHA-256 和文件大小；`config.sh` 不在更新清单内。构建包排除本机 `config.sh`。SHA-256 校验只能检查文件是否与同一 HTTP 服务提供的清单一致；它不能验证发布者身份，也无法抵御能同时替换文件和清单的网络攻击者。
+提交问题时，请写明 Kindle 型号和固件、macOS 与 Node.js 版本，以及复现步骤。分享日志前先删掉令牌、密码、精确坐标和其他私人信息。欢迎提交文档改进和修复。
 
-## 数据与许可
+---
 
-天气来自无需 API 密钥的 [Open-Meteo](https://open-meteo.com/en/docs)。节气由 [lunar-javascript](https://github.com/6tail/lunar-javascript) 计算。天气图标及其许可说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 和 `public/weather-icons/LICENSE.txt`。本项目使用 MIT 许可，见 [LICENSE](LICENSE)。
-
-安全范围和反馈方式见 [SECURITY.md](SECURITY.md) 与 [安全说明](docs/security-model.md)；当前源码快照的验证边界见 [发布状态说明](docs/release-status.md)。
-
-## 日常开发与设备更新
-
-真实配置留在本地；通用代码在这个仓库继续演进。客户端更新由 `CLIENT_DISTRIBUTION_DIR` 指定的固定快照提供，服务不会直接分发工作区里的新改动。测试通过、选择需要发布的版本后，再运行 `npm run stage-client-release` 创建新快照并修改本地选择；重启服务才使用新的选择。暂存工具不覆盖已有版本内容，也不重启服务或联系 Kindle。
-
-这份公开源码尚未完成实机验证，请保持手动更新。后续发布应在可查看设备的情况下验证显示与原生界面恢复，再选择新的客户端快照。
-
-修改远程分发的客户端文件时，必须同步提高 `VERSION` 与 `config.xml` 的版本号；暂存工具拒绝同版本不同内容或两处版本不一致的发布。Mac 端版式或数据模块变化无需提高 Kindle 客户端版本。
+- [Release 下载](https://github.com/Pengyang233/kindle-dashboard/releases)
+- [第三方许可](THIRD_PARTY_NOTICES.md)
+- [MIT License](LICENSE)
