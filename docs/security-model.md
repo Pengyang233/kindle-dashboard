@@ -6,6 +6,6 @@ The control page uses HTTP Basic credentials. `DASHBOARD_CONTROL_ORIGINS` restri
 
 The Kindle updater checks the size and SHA-256 hash of each file against a manifest served by the same HTTP server. This detects transfer corruption. It does not authenticate the publisher because a party able to replace the files can replace the manifest as well. Keep the server on a trusted LAN and use source you have reviewed.
 
-The service sends configured weather coordinates to Open-Meteo to request forecasts. The setup file `.env.local`, Kindle `config.sh`, and runtime logs are local data and must stay out of source publication. The generated Kindle ZIP omits `config.sh`; its 17-file remote update allowlist also omits it. Device startup is manual through KUAL.
+The service sends configured weather coordinates to Open-Meteo to request forecasts. National-standard AQI is read from CNEMC's public nationwide city table; that request contains no configured coordinates or city query, and matching the configured city happens locally. The setup file `.env.local`, Kindle `config.sh`, and runtime logs are local data and must stay out of source publication. The generated Kindle ZIP omits `config.sh`; its 17-file remote update allowlist also omits it. Device startup is manual through KUAL.
 
 The update service reads a selected local release snapshot, not the evolving working client directory. Stage a new snapshot explicitly and restart the service to select it; staging alone does not issue a device command.

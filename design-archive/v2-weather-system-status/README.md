@@ -3,3 +3,7 @@
 Approved major layout adding the Mac mini CPU, memory, and system-disk indicators. Today's high/low temperature and air quality are incorporated into the main weather area; precipitation appears below the icon only when forecast.
 
 This reference is updated in place for accepted minor refinements within v2, including the APFS-container disk used/total label (matching Macintosh HD in Settings), main-icon optical alignment, and weather-hero spacing. The reference frame uses the fixed sample data from `test/dashboard.test.js` and is rendered at exactly 1072×1448.
+
+## Restoration
+
+Before introducing v3 on 2026-11-01, the v2 renderer was retained here as `render.js`; the existing fixed-data `frame.png` is unchanged. The live renderer selects it with `DASHBOARD_LAYOUT=weather`. Switching back restores this layout and its 30-minute service-advertised image cadence while retaining the current safe client updater and recovery logic. See `docs/clock-refresh.md`.

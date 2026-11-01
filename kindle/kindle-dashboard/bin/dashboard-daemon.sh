@@ -144,13 +144,21 @@ fi
 
 prepare_display
 sh "$EXTENSION_DIR/bin/display-frame.sh" || exit $?
-last_refresh="$(date +%s)"
-last_server_contact="$last_refresh"
+last_server_contact="$(date +%s)"
+next_refresh="$(next_refresh_epoch "$last_server_contact")"
+log_message "timing: refresh=$(refresh_seconds)s align=$(cat "$STATE_DIR/refresh-align" 2>/dev/null) full_every=$FULL_REFRESH_EVERY next=$next_refresh server_offset=$(cat "$STATE_DIR/server-offset" 2>/dev/null)"
 
 while [ "$requested_action" = "run" ]; do
   if [ -f "$STATE_DIR/stop-requested" ] || battery_requires_exit; then
     requested_action="stop"
     break
+  fi
+
+  now_epoch="$(date +%s)"
+  if [ -f "$STATE_DIR/refresh-requested" ] || [ "$now_epoch" -ge "$next_refresh" ]; then
+    rm -f "$STATE_DIR/refresh-requested"
+    refresh_frame
+    next_refresh="$(next_refresh_epoch "$(date +%s)")"
   fi
 
   remote_command="$(poll_remote_command)"
@@ -184,12 +192,18 @@ while [ "$requested_action" = "run" ]; do
   esac
 
   now_epoch="$(date +%s)"
-  if [ -f "$STATE_DIR/refresh-requested" ] || [ $((now_epoch - last_refresh)) -ge "$REFRESH_SECONDS" ]; then
+  if [ -f "$STATE_DIR/refresh-requested" ] || [ "$now_epoch" -ge "$next_refresh" ]; then
     rm -f "$STATE_DIR/refresh-requested"
     refresh_frame
-    last_refresh="$(date +%s)"
+    next_refresh="$(next_refresh_epoch "$(date +%s)")"
   fi
-  sleep "$COMMAND_POLL_SECONDS"
+  sleep_seconds="$COMMAND_POLL_SECONDS"
+  until_refresh="$((next_refresh - $(date +%s)))"
+  if [ "$until_refresh" -le 0 ]; then
+    continue
+  fi
+  if [ "$sleep_seconds" -gt "$until_refresh" ]; then sleep_seconds="$until_refresh"; fi
+  sleep "$sleep_seconds"
 done
 
 trap - EXIT

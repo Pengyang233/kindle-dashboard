@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=1072, initial-scale=1"><title>Kindle Dashboard</title><style>html,body{margin:0;width:1072px;height:1448px;overflow:hidden;background:#f3f3ef;}</style></head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">    <defs>
+      <symbol id="icon-partly" viewBox="0 0 160 160">
+        <circle cx="61" cy="57" r="29" fill="#d8d8d3" stroke="#111" stroke-width="6"/>
+        <g stroke="#111" stroke-width="5" stroke-linecap="round"><path d="M61 12v12M61 90v13M17 57h13M92 57h13M30 26l9 9M84 80l9 9M30 88l9-9M84 34l9-9"/></g>
+        <path d="M46 129h74c18 0 28-10 28-24 0-15-12-26-28-26-4-20-21-34-42-34-24 0-43 18-45 42-14 3-23 12-23 23 0 12 11 19 36 19Z" fill="#f3f3ef" stroke="#111" stroke-width="7" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-rain" viewBox="0 0 120 120">
+        <path d="M25 72h66c14 0 22-8 22-19s-9-20-22-20C87 18 74 9 59 9 40 9 25 23 23 41 12 43 5 50 5 59c0 9 8 13 20 13Z" fill="#edede8" stroke="#111" stroke-width="6" stroke-linejoin="round"/>
+        <g stroke="#111" stroke-width="6" stroke-linecap="round"><path d="M31 87l-6 15M59 87l-6 15M87 87l-6 15"/></g>
+      </symbol>
+      <symbol id="icon-cloud" viewBox="0 0 120 120">
+        <path d="M23 85h69c14 0 23-9 23-21 0-13-10-22-23-22C88 25 74 15 57 15 38 15 22 30 20 49 10 51 4 59 4 68c0 10 7 17 19 17Z" fill="#edede8" stroke="#111" stroke-width="6" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="icon-sun" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="27" fill="#d8d8d3" stroke="#111" stroke-width="6"/>
+        <g stroke="#111" stroke-width="6" stroke-linecap="round"><path d="M60 8v13M60 99v13M8 60h13M99 60h13M24 24l10 10M86 86l10 10M24 96l10-10M86 34l10-10"/></g>
+      </symbol>
+      <symbol id="icon-snow" viewBox="0 0 120 120">
+        <path d="M25 69h66c14 0 22-8 22-19s-9-20-22-20C87 15 74 8 59 8 40 8 25 20 23 38 12 40 5 47 5 56c0 9 8 13 20 13Z" fill="#edede8" stroke="#111" stroke-width="6" stroke-linejoin="round"/>
+        <g stroke="#111" stroke-width="4" stroke-linecap="round"><path d="M31 83v22M20 94h22M23 86l16 16M39 86l-16 16M75 83v22M64 94h22M67 86l16 16M83 86l-16 16"/></g>
+      </symbol>
+      <symbol id="icon-storm" viewBox="0 0 120 120">
+        <path d="M25 69h66c14 0 22-8 22-19s-9-20-22-20C87 15 74 8 59 8 40 8 25 20 23 38 12 40 5 47 5 56c0 9 8 13 20 13Z" fill="#edede8" stroke="#111" stroke-width="6" stroke-linejoin="round"/>
+        <path d="M62 78L45 101h14l-4 16 22-27H63Z" fill="#111"/>
+      </symbol>
+    </defs></svg>
+<style>
+#kindle-balanced-refined .kb-stage { display:flex; justify-content:center; padding:0; }
+#kindle-balanced-refined .kb-paper { container-type:inline-size; position:relative; width:1072px; aspect-ratio:1072/1448; color:#111; background:#f3f3ef; font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif; font-weight:400; line-height:1.2; }
+#kindle-balanced-refined .kb-paper * { box-sizing:border-box; }
+#kindle-balanced-refined .kb-band { position:absolute; left:5.8%; right:5.8%; }
+#kindle-balanced-refined .kb-row { display:flex; justify-content:space-between; align-items:baseline; gap:2cqw; white-space:nowrap; }
+#kindle-balanced-refined .kb-header { top:4.5%; font-size:7cqw; font-weight:500; }
+#kindle-balanced-refined .kb-weekday { font-size:5.8cqw; }
+#kindle-balanced-refined .kb-meta { top:11.1%; font-size:3.5cqw; color:#454545; }
+#kindle-balanced-refined .kb-clock { top:16.2%; display:flex; justify-content:center; align-items:baseline; gap:2.5cqw; white-space:nowrap; }
+#kindle-balanced-refined .kb-time { font-family:"Helvetica Neue",Arial,sans-serif; font-size:31.5cqw; font-weight:500; font-variant-numeric:tabular-nums; letter-spacing:0; line-height:1; white-space:nowrap; }
+#kindle-balanced-refined .kb-period { font-size:4.2cqw; font-weight:500; line-height:1; }
+#kindle-balanced-refined .kb-rule { height:0; border-bottom:.22cqw solid #151515; }
+#kindle-balanced-refined .kb-location { top:46%; font-size:4cqw; font-weight:500; }
+#kindle-balanced-refined .kb-location span:last-child { font-size:3.5cqw; color:#454545; font-weight:400; }
+#kindle-balanced-refined .kb-weather { top:52.4%; display:grid; grid-template-columns:46cqw 1fr; gap:3.4cqw; align-items:center; }
+#kindle-balanced-refined .kb-current { display:flex; align-items:center; gap:2.5cqw; }
+#kindle-balanced-refined .kb-icon { width:17.5cqw; height:17.5cqw; flex:none; display:flex; align-items:center; justify-content:center; }
+#kindle-balanced-refined .kb-icon svg { width:100% !important; height:100% !important; stroke-width:1.65; }
+#kindle-balanced-refined .kb-temp { font-family:Georgia,serif; font-size:16.3cqw; line-height:1; white-space:nowrap; }
+#kindle-balanced-refined .kb-temp.kb-temp-long { font-size:14cqw; }
+#kindle-balanced-refined .kb-detail { display:grid; gap:2.2cqw; font-size:4cqw; white-space:nowrap; }
+#kindle-balanced-refined .kb-detail div { display:flex; align-items:baseline; justify-content:space-between; gap:2cqw; }
+#kindle-balanced-refined .kb-detail span { color:#454545; }
+#kindle-balanced-refined .kb-detail b { font-weight:400; font-variant-numeric:tabular-nums; white-space:nowrap; }
+#kindle-balanced-refined .kb-aqi-value { font-size:4cqw; }
+#kindle-balanced-refined .kb-forecast { top:74.2%; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); }
+#kindle-balanced-refined .kb-day { display:flex; flex-direction:column; align-items:center; gap:.8cqw; padding:0 1cqw; white-space:nowrap; }
+#kindle-balanced-refined .kb-day+.kb-day { border-left:.14cqw solid #a0a09a; }
+#kindle-balanced-refined .kb-day-name { font-size:3.8cqw; font-weight:500; line-height:1.2; }
+#kindle-balanced-refined .kb-range { font-family:Georgia,serif; font-size:5.4cqw; line-height:1.15; white-space:nowrap; }
+#kindle-balanced-refined .kb-note { font-size:3.3cqw; color:#454545; line-height:1.2; }
+#kindle-balanced-refined .kb-footer { top:90.3%; display:grid; grid-template-columns:8.5cqw 1fr 1fr 1.35fr; gap:3cqw; align-items:center; }
+#kindle-balanced-refined .kb-apple { font-size:7.1cqw; line-height:1; }
+#kindle-balanced-refined .kb-metric { min-width:0; }
+#kindle-balanced-refined .kb-metric-head { display:flex; align-items:baseline; justify-content:space-between; gap:.8cqw; font-size:3cqw; white-space:nowrap; line-height:1.2; }
+#kindle-balanced-refined .kb-metric-head b { font-weight:500; }
+#kindle-balanced-refined .kb-metric-head span { font-size:2.85cqw; color:#454545; }
+#kindle-balanced-refined .kb-bar { margin-top:1.8cqw; height:2cqw; background:#d0d0ca; }
+#kindle-balanced-refined .kb-bar span { display:block; height:100%; background:#151515; }
+</style>
+<div id="kindle-balanced-refined"  aria-label="时间天气均衡 · 无预报图标">
+<div class="kb-stage"><div class="kb-paper" aria-label="时间天气均衡优化稿，时钟、天气与 Mac 状态">
+<div class="kb-band kb-row kb-header"><span class="kb-date">{{DATE}}</span><span class="kb-weekday">{{WEEKDAY}}</span></div>
+<div class="kb-band kb-row kb-meta"><span class="kb-month">{{MONTH}}</span><span class="kb-calendar">{{CALENDAR}}</span></div>
+<div class="kb-band kb-clock"><span class="kb-time">{{TIME}}</span><span class="kb-period">{{PERIOD}}</span></div>
+<div class="kb-band kb-rule" style="top:42.3%"></div>
+<div class="kb-band kb-row kb-location"><span>{{CONDITION}}</span><span class="kb-rain">{{RAIN}}</span></div>
+<div class="kb-band kb-weather"><div class="kb-current"><span class="kb-icon"><svg viewBox="0 0 120 120" aria-hidden="true"><use href="#icon-{{ICON}}" width="120" height="120"/></svg></span><span class="kb-temp {{TEMP_CLASS}}">{{TEMPERATURE}}</span></div><div class="kb-detail"><div><span>温度</span><b>{{RANGE}}</b></div><div><span>湿度</span><b>{{HUMIDITY}}</b></div><div><span>AQI</span><b class="kb-aqi-value">{{AQI}}</b></div></div></div>
+<div class="kb-band kb-rule" style="top:72.2%"></div>
+<div class="kb-band kb-forecast"><div class="kb-day"><span class="kb-day-name">{{FORECAST_DAY_0}}</span><span class="kb-range">{{FORECAST_RANGE_0}}</span><span class="kb-note">{{FORECAST_NOTE_0}}</span></div><div class="kb-day"><span class="kb-day-name">{{FORECAST_DAY_1}}</span><span class="kb-range">{{FORECAST_RANGE_1}}</span><span class="kb-note">{{FORECAST_NOTE_1}}</span></div><div class="kb-day"><span class="kb-day-name">{{FORECAST_DAY_2}}</span><span class="kb-range">{{FORECAST_RANGE_2}}</span><span class="kb-note">{{FORECAST_NOTE_2}}</span></div></div>
+<div class="kb-band kb-rule" style="top:87.5%"></div>
+<div class="kb-band kb-footer"><span class="kb-apple"></span><div class="kb-metric"><div class="kb-metric-head"><b>CPU</b><span>{{CPU}}</span></div><div class="kb-bar"><span style="width:{{CPU_PERCENT}}%"></span></div></div><div class="kb-metric"><div class="kb-metric-head"><b>MEM</b><span>{{MEMORY}}</span></div><div class="kb-bar"><span style="width:{{MEMORY_PERCENT}}%"></span></div></div><div class="kb-metric"><div class="kb-metric-head"><b>DISK</b><span>{{DISK}}</span></div><div class="kb-bar"><span style="width:{{DISK_PERCENT}}%"></span></div></div></div>
+</div></div>
+</div>
+
+</body></html>

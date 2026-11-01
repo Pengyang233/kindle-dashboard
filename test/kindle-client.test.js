@@ -102,7 +102,7 @@ test("the 17-file protocol upgrades a local 1.0.5-version installation and prese
       },
     );
     assert.equal(successResult.code, 20, successResult.stderr);
-    assert.equal(await readFile(join(successful.extension, "VERSION"), "utf8"), "1.0.6\n");
+    assert.equal(await readFile(join(successful.extension, "VERSION"), "utf8"), await readFile(join(clientSource, "VERSION"), "utf8"));
     assert.equal(await readFile(join(successful.extension, "config.sh"), "utf8"), localConfig);
     assert.doesNotMatch(await readFile(join(successful.extension, "menu.json"), "utf8"), /old menu/);
     assert.ok((await stat(join(successful.extension, "bin", "update-client.sh"))).mode & 0o100);
@@ -470,4 +470,58 @@ test("Kindle package uses an explicit allowlist and preserves executable modes",
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test("frame response timing survives 304 but invalid downloads cannot change the schedule", async () => {
+  const fixture = await makeClientCopy("kindle-frame-timing-");
+  const fakeBin = join(fixture.root, "fake-bin");
+  await mkdir(fakeBin);
+  await writeFile(join(fixture.extension, "config.sh"), 'DASHBOARD_BASE_URL="http://mock-server"\nDEVICE_TOKEN="token"\nREFRESH_SECONDS=1800\n');
+  await writeExecutable(join(fakeBin, "curl"), `#!/bin/sh
+out=""; headers=""
+while [ "$#" -gt 0 ]; do
+ case "$1" in -D) headers="$2"; shift 2;; -o) out="$2"; shift 2;; -H|--connect-timeout|--max-time) shift 2;; *) shift;; esac
+done
+printf 'HTTP/1.1 %s OK\\r\\nX-Dashboard-Refresh-Seconds: %s\\r\\nX-Dashboard-Align: 1\\r\\nX-Dashboard-Server-Epoch: 1700000010\\r\\n\\r\\n' "$MOCK_HTTP_STATUS" "$MOCK_INTERVAL" > "$headers"
+[ "$MOCK_HTTP_STATUS" = 304 ] || cp "$MOCK_FRAME" "$out"
+`);
+  const env = { KINDLE_DASHBOARD_DIR: fixture.extension, PATH: `${fakeBin}:${process.env.PATH}`, MOCK_FRAME: join(clientSource,"assets/frame.png"), MOCK_HTTP_STATUS:"200", MOCK_INTERVAL:"60" };
+  const script = join(fixture.extension,"bin/fetch-frame.sh");
+  try {
+    assert.equal((await runScript(script,{env})).code,10);
+    assert.equal((await readFile(join(fixture.extension,"state/refresh-seconds"),"utf8")).trim(),"60");
+    assert.equal((await runScript(script,{env:{...env,MOCK_HTTP_STATUS:"304",MOCK_INTERVAL:"1800"}})).code,10);
+    assert.equal((await readFile(join(fixture.extension,"state/refresh-seconds"),"utf8")).trim(),"1800");
+    await runScript(script,{env:{...env,MOCK_HTTP_STATUS:"304",MOCK_INTERVAL:"1;touch should-not-run"}});
+    assert.equal((await readFile(join(fixture.extension,"state/refresh-seconds"),"utf8")).trim(),"1800");
+    assert.equal((await runScript(script,{env:{...env,MOCK_HTTP_STATUS:"500",MOCK_INTERVAL:"60",MOCK_FRAME:"/nonexistent"}})).code,3);
+    assert.equal((await readFile(join(fixture.extension,"state/refresh-seconds"),"utf8")).trim(),"1800");
+  } finally {await rm(fixture.root,{recursive:true,force:true});}
+});
+
+test("full clear occurs every twelve successful displays and FBInk failures preserve the counter", async () => {
+  const fixture = await makeClientCopy("kindle-full-refresh-");
+  const fake = join(fixture.root,"fbink");
+  const calls = join(fixture.root,"calls");
+  await writeFile(join(fixture.extension,"config.sh"),'FULL_REFRESH_EVERY=12\n');
+  await writeExecutable(fake,`#!/bin/sh
+printf '%s\\n' "$*" >> "$MOCK_CALLS"
+case "$1" in -g) [ "\u0024{MOCK_FAIL_IMAGE:-0}" = 1 ] && exit 1;; -f) [ "\u0024{MOCK_FAIL_CLEAR:-0}" = 1 ] && exit 1;; esac
+exit 0
+`);
+  const env={KINDLE_DASHBOARD_DIR:fixture.extension,KINDLE_FBINK:fake,MOCK_CALLS:calls};
+  const script=join(fixture.extension,"bin/display-frame.sh");
+  const counter=join(fixture.extension,"state/display-count");
+  try {
+    for(let i=0;i<14;i++)assert.equal((await runScript(script,{env})).code,0);
+    const log=await readFile(calls,"utf8");
+    assert.equal((log.match(/^-f -c$/gm)||[]).length,2);
+    assert.equal((log.match(/^-g .* -W GC16$/gm)||[]).length,14);
+    assert.equal((await readFile(counter,"utf8")).trim(),"14");
+    assert.equal((await runScript(script,{env:{...env,MOCK_FAIL_IMAGE:"1"}})).code,1);
+    assert.equal((await readFile(counter,"utf8")).trim(),"14");
+    await writeFile(counter,"24\n");
+    assert.equal((await runScript(script,{env:{...env,MOCK_FAIL_CLEAR:"1"}})).code,1);
+    assert.equal((await readFile(counter,"utf8")).trim(),"24");
+  } finally {await rm(fixture.root,{recursive:true,force:true});}
 });

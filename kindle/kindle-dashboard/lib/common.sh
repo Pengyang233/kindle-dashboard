@@ -160,6 +160,29 @@ read_number_file() {
   fi
 }
 
+# The Mac may select the clock cadence without replacing device-local config.sh.
+refresh_seconds() {
+  cadence="$(cat "$STATE_DIR/refresh-seconds" 2>/dev/null)"
+  case "$cadence" in ''|*[!0-9]*) cadence="$REFRESH_SECONDS" ;; esac
+  case "$cadence" in ''|*[!0-9]*) cadence=1800 ;; esac
+  if [ "$cadence" -lt 60 ] || [ "$cadence" -gt 86400 ]; then cadence=1800; fi
+  printf '%s\n' "$cadence"
+}
+
+next_refresh_epoch() {
+  schedule_now="$1"
+  cadence="$(refresh_seconds)"
+  alignment="$(cat "$STATE_DIR/refresh-align" 2>/dev/null)"
+  offset="$(cat "$STATE_DIR/server-offset" 2>/dev/null)"
+  case "$offset" in -*) offset_digits="${offset#-}" ;; *) offset_digits="$offset" ;; esac
+  case "$offset_digits" in ''|*[!0-9]*) offset=0 ;; esac
+  if [ "$alignment" = 1 ]; then
+    printf '%s\n' "$(( ((schedule_now + offset) / cadence + 1) * cadence - offset ))"
+  else
+    printf '%s\n' "$((schedule_now + cadence))"
+  fi
+}
+
 show_message() {
   message="$1"
   "$EIPS" -c 2>/dev/null

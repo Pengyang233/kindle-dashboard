@@ -14,7 +14,9 @@
 
 [v1.0.6](https://github.com/Pengyang233/kindle-dashboard/releases/tag/v1.0.6) 已在 Kindle Paperwhite 4、固件 5.18.1.1.1、KUAL 和 FBInk 组合上完成实机验证。其他 Kindle 型号和固件尚未验证；完整范围见[发布状态说明](docs/release-status.md)。
 
-画面包含日期、节气、天气与三日预报，以及 Mac 的 CPU、内存和磁盘使用情况。网络或天气服务短暂不可用时，服务会保留上一张有效画面。
+当前工作区新增时钟模板：大号 12 小时制时分、节日优先的节气栏、天气与三日文字预报，以及 Mac 的 CPU、内存和磁盘状态。旧版无时钟模板完整保留，可设置 `DASHBOARD_LAYOUT=weather` 恢复。时钟模板每分钟对齐整分取图；每 12 次成功显示额外完全清屏一次，约 12 分钟。完整设置和恢复方法见[时钟与刷新说明](docs/clock-refresh.md)。
+
+天气每 15 分钟在后台更新；国标 AQI 使用中国环境监测总站的城市实时发布数据，避免将美标数值直接套用国标等级。网络或渲染失败仍会保留上一张有效画面。当前客户端工作版本为 1.0.7，尚未发布为新的 GitHub Release。
 
 ## 需要准备什么
 
@@ -68,6 +70,8 @@ npm start
 | 配置 | 用途 | 默认值 |
 | --- | --- | --- |
 | `DASHBOARD_CITY`、`DASHBOARD_TIMEZONE` | 画面显示的城市名和时区 | `Example`、`Asia/Shanghai` |
+| `DASHBOARD_LAYOUT` | `clock` 时钟模板，或 `weather` 恢复旧版 | `clock` |
+| `AIR_QUALITY_CITY` | 中国环境监测总站城市名 | 沿用 `DASHBOARD_CITY` |
 | `WEATHER_LATITUDE`、`WEATHER_LONGITUDE` | 天气查询位置 | 空，需填写 |
 | `HOST`、`PORT` | 服务监听地址和端口 | `127.0.0.1`、`8787` |
 | `DASHBOARD_DEVICE_ID` | Kindle 设备标识 | `pw4` |

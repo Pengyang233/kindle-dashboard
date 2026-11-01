@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
+import { CHINA_AQI_URL, chinaAirQualityLabel, parseChinaAirQuality, MAX_AQI_AGE_MS } from "./air-quality.js";
 
 const CACHE_TTL_MS = 15 * 60 * 1000;
 const execFileAsync = promisify(execFile);
@@ -10,6 +11,7 @@ const execFileAsync = promisify(execFile);
 let cachedWeather = null;
 let refreshInFlight = null;
 let persistentCacheLoaded = false;
+let needsAirRefresh = false;
 
 const defaultWeatherCachePath = fileURLToPath(
   new URL("../runtime/weather-cache.json", import.meta.url),
@@ -25,7 +27,14 @@ async function loadPersistentCache(path) {
   try {
     const parsed = JSON.parse(await readFile(weatherCachePath(path), "utf8"));
     const fetchedAt = new Date(parsed.fetchedAt);
-    if (!Number.isNaN(fetchedAt.getTime())) cachedWeather = { ...parsed, fetchedAt };
+    if (!Number.isNaN(fetchedAt.getTime())) {
+      cachedWeather = { ...parsed, fetchedAt };
+      if (parsed.airStandard !== "CN") {
+        cachedWeather.airAqi = null;
+        cachedWeather.airQuality = "暂无";
+        needsAirRefresh = true;
+      }
+    }
   } catch (error) {
     if (error.code !== "ENOENT") {
       console.error("Unable to read weather cache:", error.message);
@@ -69,7 +78,7 @@ async function fetchJson(url, label) {
     return JSON.parse(stdout);
   } catch (curlError) {
     const fetchCause = lastError?.cause?.message || lastError?.message || "unknown";
-    throw new Error(`${label} failed (fetch: ${fetchCause}; curl: ${curlError.message})`);
+    throw new Error(`${label} failed (fetch: ${fetchCause}; curl exit: ${curlError.code || "unknown"})`);
   }
 }
 
@@ -100,40 +109,40 @@ export function validateWeatherCoordinates(configuration = {}) {
   return { latitude: parsedLatitude, longitude: parsedLongitude };
 }
 
-async function fetchFreshWeather({ latitude, longitude, timezone, cacheFile }) {
+async function fetchFreshWeather({ latitude, longitude, timezone, cacheFile, airQualityCity = "" }) {
   const query = new URLSearchParams({
     latitude: String(latitude),
     longitude: String(longitude),
     current:
       "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code",
-    hourly: "precipitation_probability",
+    hourly: "precipitation_probability,weather_code",
     daily:
       "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max",
     timezone,
     forecast_days: "4",
     forecast_hours: "24",
   });
-  const airQuery = new URLSearchParams({
-    latitude: String(latitude),
-    longitude: String(longitude),
-    current: "us_aqi,pm2_5",
-    timezone,
-  });
-
   const [data, airResult] = await Promise.all([
-    fetchJson(`https://api.open-meteo.com/v1/forecast?${query}`, "Open-Meteo"),
-    fetchJson(
-      `https://air-quality-api.open-meteo.com/v1/air-quality?${airQuery}`,
-      "Open-Meteo Air Quality",
-    )
+    fetchJson(`https://api.open-meteo.com/v1/forecast?${query}`, "Open-Meteo")
+      .catch((error) => { console.error("Unable to refresh weather:", error.message); return null; }),
+    (airQualityCity ? fetchJson(CHINA_AQI_URL, "CNEMC")
+      .then((rows) => parseChinaAirQuality(rows, airQualityCity)) : Promise.resolve(null))
       .catch((error) => {
         console.error("Unable to refresh air quality:", error.message);
         return null;
       }),
   ]);
-  const airAqi = Number.isFinite(airResult?.current?.us_aqi)
-    ? Math.round(airResult.current.us_aqi)
-    : cachedWeather?.airAqi ?? null;
+  const cachedAirAge = Date.now() - new Date(cachedWeather?.airObservedAt).getTime();
+  const cachedAir = cachedWeather?.airStandard === "CN" && cachedWeather?.airCity?.replace(/市$/, "") === airQualityCity.replace(/市$/, "") && cachedAirAge >= 0 && cachedAirAge <= MAX_AQI_AGE_MS
+    ? Object.fromEntries(["airAqi", "airQuality", "airStandard", "airObservedAt", "airSource", "airCity"].map((key) => [key, cachedWeather[key]]))
+    : { airAqi: null, airQuality: "暂无", airStandard: "CN" };
+  needsAirRefresh = false;
+  if (!data?.current || !data?.daily) {
+    if (!cachedWeather) return null;
+    cachedWeather = { ...cachedWeather, ...(airResult || cachedAir), stale: true };
+    await savePersistentCache(cachedWeather, cacheFile);
+    return cachedWeather;
+  }
   const weather = {
     temperature: Math.round(data.current.temperature_2m),
     apparentTemperature: Math.round(data.current.apparent_temperature),
@@ -145,12 +154,11 @@ async function fetchFreshWeather({ latitude, longitude, timezone, cacheFile }) {
       data.hourly?.time,
       data.hourly?.precipitation_probability,
       data.current?.time,
+      data.current?.weather_code,
+      data.hourly?.weather_code,
     ),
-    airAqi,
-    airQuality: airQualityLabel(airAqi),
-    pm25: Number.isFinite(airResult?.current?.pm2_5)
-      ? Math.round(airResult.current.pm2_5)
-      : cachedWeather?.pm25 ?? null,
+    rainHours: { times: data.hourly?.time || [], probabilities: data.hourly?.precipitation_probability || [], codes: data.hourly?.weather_code || [] },
+    ...(airResult || cachedAir),
     forecast: (data.daily?.time || []).slice(1, 4).map((date, index) => ({
       date,
       weatherCode: data.daily?.weather_code?.[index + 1] ?? 3,
@@ -170,29 +178,33 @@ async function fetchFreshWeather({ latitude, longitude, timezone, cacheFile }) {
 }
 
 export function airQualityLabel(aqi) {
-  if (!Number.isFinite(aqi)) return "暂无";
-  if (aqi <= 50) return "优";
-  if (aqi <= 100) return "良";
-  if (aqi <= 150) return "敏感";
-  if (aqi <= 200) return "较差";
-  if (aqi <= 300) return "很差";
-  return "危险";
+  return chinaAirQualityLabel(aqi);
 }
 
-export function rainTimeLabel(times = [], probabilities = [], currentTime = "") {
-  const rainyIndex = probabilities.findIndex(
-    (probability) => Number(probability) >= 40,
-  );
-  if (rainyIndex < 0 || !times[rainyIndex]) return "24时无雨";
-
-  const rainyTime = times[rainyIndex];
+export function rainTimeLabel(times = [], probabilities = [], currentTime = "", currentCode, codes = []) {
+  if ((currentCode >= 51 && currentCode <= 67) || (currentCode >= 80 && currentCode <= 82) || currentCode >= 95) return "正在下雨";
+  if ((currentCode >= 71 && currentCode <= 77) || (currentCode >= 85 && currentCode <= 86)) return "正在下雪";
+  const current = (currentTime || times[0] || "").slice(0, 13);
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}$/.test(current)) return "降雨数据暂无";
+  const start = Date.parse(`${current}:00:00Z`);
+  const samples = times.map((time, index) => ({ time, index, epoch: Date.parse(`${time.slice(0, 16)}:00Z`), probability: probabilities[index] }))
+    .filter((item) => item.epoch >= start && item.epoch < start + 86400000);
+  if (samples.length === 0 || samples.some((item) => typeof item.probability !== "number" || !Number.isFinite(item.probability) || item.probability < 0 || item.probability > 100)) return "降雨数据暂无";
+  const rainy = samples.find((item) => item.probability >= 40);
+  if (!rainy) {
+    const today = samples.filter((item) => item.time.slice(0, 10) === current.slice(0, 10));
+    const hours = new Set(today.map((item) => item.time.slice(0, 13)));
+    return hours.size === 24 - Number(current.slice(11, 13)) ? "今日无雨" : "降雨数据暂无";
+  }
+  const rainyTime = rainy.time;
   const rainyDate = rainyTime.slice(0, 10);
-  const currentDate = (currentTime || times[0] || "").slice(0, 10);
+  const currentDate = current.slice(0, 10);
   const hour = Number(rainyTime.slice(11, 13));
-
-  if (rainyIndex === 0) return "近期有雨";
-  if (rainyDate === currentDate) return `${hour}时后`;
-  return `明日${hour}时`;
+  const code = codes[rainy.index];
+  const phase = (code >= 71 && code <= 77) || (code >= 85 && code <= 86) ? "雪" : "雨";
+  if (rainyTime.slice(0, 13) === current) return `本小时有${phase}`;
+  if (rainyDate === currentDate) return `${hour}时有${phase}`;
+  return `明日${hour}时有${phase}`;
 }
 
 export async function getWeather(options) {
@@ -202,6 +214,7 @@ export async function getWeather(options) {
         longitude: process.env.WEATHER_LONGITUDE,
         timezone: process.env.DASHBOARD_TIMEZONE,
         cacheFile: process.env.WEATHER_CACHE_FILE,
+        airQualityCity: process.env.AIR_QUALITY_CITY || process.env.DASHBOARD_CITY,
       }
     : options;
   const coordinates = validateWeatherCoordinates(settings);
@@ -211,10 +224,11 @@ export async function getWeather(options) {
     ...coordinates,
     timezone: settings.timezone || "Asia/Shanghai",
     cacheFile: settings.cacheFile,
+    airQualityCity: settings.airQualityCity || "",
   };
   await loadPersistentCache(refreshSettings.cacheFile);
   if (
-    cachedWeather &&
+    cachedWeather && !needsAirRefresh &&
     Date.now() - cachedWeather.fetchedAt.getTime() < CACHE_TTL_MS
   ) {
     return { ...cachedWeather, stale: false };
@@ -224,6 +238,12 @@ export async function getWeather(options) {
     refreshInFlight = fetchFreshWeather(refreshSettings).finally(() => {
       refreshInFlight = null;
     });
+  }
+
+  // A stale forecast must not block the clock on a slow/offline provider.
+  if (cachedWeather) {
+    refreshInFlight.catch((error) => console.error("Background weather refresh failed:", error.message));
+    return { ...cachedWeather, stale: true };
   }
 
   try {

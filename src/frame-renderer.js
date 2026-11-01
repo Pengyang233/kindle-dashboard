@@ -98,7 +98,10 @@ export async function getFramePng(html) {
   }
 
   try {
-    return await renderInFlight;
+    const frame = await renderInFlight;
+    // Concurrent callers may request different minutes. Never give a new clock
+    // request the older HTML another caller happened to start rendering first.
+    return frame.sourceHash === sourceHash ? frame : getFramePng(html);
   } catch (error) {
     if (cachedFrame) {
       console.error("Unable to render fresh frame; serving cached PNG:", error.message);

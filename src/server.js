@@ -210,10 +210,12 @@ function serviceFunctions(config, services) {
       longitude: config.weatherLongitude,
       timezone: config.timezone,
       cacheFile: config.weatherCacheFile,
+      airQualityCity: config.airQualityCity || config.city,
     })),
     getSystemStatus: services.getSystemStatus || getSystemStatus,
     renderDashboard: services.renderDashboard || renderDashboard,
     getFramePng: services.getFramePng || getFramePng,
+    now: services.now || (() => new Date()),
   };
 }
 
@@ -354,21 +356,34 @@ export function createDashboardServer(config, services = {}) {
             dependencies.getWeather(),
             dependencies.getSystemStatus(),
           ]);
-          const html = dependencies.renderDashboard({
+          const frameNow = dependencies.now();
+          let html = dependencies.renderDashboard({
+            now: frameNow,
             weather,
             system,
             city: effectiveConfig.city,
             timezone: effectiveConfig.timezone,
             weatherConfigured: effectiveConfig.weatherConfigured ?? true,
+            layout: effectiveConfig.layout || "clock",
           });
+          const requestedMinute = Math.floor(frameNow.getTime() / 60000);
           frame = await dependencies.getFramePng(html);
+          if ((effectiveConfig.layout || "clock") === "clock" && Math.floor(dependencies.now().getTime() / 60000) !== requestedMinute && !frame.stale) {
+            html = dependencies.renderDashboard({now: dependencies.now(), weather, system, city: effectiveConfig.city, timezone: effectiveConfig.timezone, weatherConfigured: effectiveConfig.weatherConfigured ?? true, layout: "clock"});
+            frame = await dependencies.getFramePng(html);
+          }
         } catch {
           sendText(response, 503, "Dashboard unavailable");
           return;
         }
 
+        const timingHeaders = {
+          "X-Dashboard-Refresh-Seconds": effectiveConfig.layout === "weather" ? "1800" : "60",
+          "X-Dashboard-Align": effectiveConfig.layout === "weather" ? "0" : "1",
+          "X-Dashboard-Server-Epoch": String(Math.floor(Date.now() / 1000)),
+        };
         if (request.headers["if-none-match"] === frame.etag) {
-          response.writeHead(304, { ETag: frame.etag });
+          response.writeHead(304, { ETag: frame.etag, ...timingHeaders });
           response.end();
           return;
         }
@@ -379,6 +394,7 @@ export function createDashboardServer(config, services = {}) {
           "Cache-Control": "no-cache",
           ETag: frame.etag,
           "X-Frame-Stale": frame.stale ? "1" : "0",
+          ...timingHeaders,
         });
         response.end(frame.png);
         return;
@@ -415,6 +431,7 @@ export function createDashboardServer(config, services = {}) {
             city: effectiveConfig.city,
             timezone: effectiveConfig.timezone,
             weatherConfigured: effectiveConfig.weatherConfigured ?? true,
+            layout: effectiveConfig.layout || "clock",
           });
           adminPage(response, html);
         } catch {

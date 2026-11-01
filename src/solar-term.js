@@ -72,3 +72,24 @@ export function getSolarTermDisplay(
     text: `${current} · 距${next}${daysUntilNext}天`,
   };
 }
+
+// Product calendar: popular Chinese festivals, not every observance in the library.
+const FESTIVALS = new Map([
+  ["元旦节", "元旦"], ["春节", "春节"], ["除夕", "除夕"],
+  ["元宵节", "元宵节"], ["妇女节", "妇女节"], ["劳动节", "劳动节"],
+  ["儿童节", "儿童节"], ["端午节", "端午节"], ["七夕节", "七夕"],
+  ["中秋节", "中秋节"], ["教师节", "教师节"], ["国庆节", "国庆节"],
+  ["重阳节", "重阳节"], ["腊八节", "腊八节"],
+]);
+
+export function getCalendarLabel(now = new Date(), timezone = "Asia/Shanghai") {
+  const today = zonedDateParts(now, timezone);
+  const solar = Solar.fromYmd(today.year, today.month, today.day);
+  const lunar = solar.getLunar();
+  const festivals = [...new Set([...solar.getFestivals(), ...lunar.getFestivals()]
+    .filter((name) => FESTIVALS.has(name)).map((name) => FESTIVALS.get(name)))];
+  if (lunar.getJieQi() === "清明") festivals.push("清明节");
+  // Northern and southern Little New Year are both commonly celebrated.
+  if (lunar.getMonth() === 12 && [23, 24].includes(lunar.getDay())) festivals.push("小年");
+  return festivals.length ? festivals.join("/") : getSolarTermDisplay(now, timezone).current;
+}

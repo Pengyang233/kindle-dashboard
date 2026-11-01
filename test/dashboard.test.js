@@ -68,6 +68,7 @@ async function dispatch(server, { method = "GET", url = "/", headers = {}, body 
 
 test("renders a fixed-size, clock-free Kindle dashboard frame with Mac status", () => {
   const html = renderDashboard({
+    layout: "weather",
     now: new Date("2026-08-14T02:36:00Z"),
     weather: {
       temperature: 29,
@@ -175,9 +176,9 @@ test("summarizes air quality and the first likely rain time", () => {
       [10, 30, 45],
       "2026-08-12T20:00",
     ),
-    "22时后",
+    "22时有雨",
   );
-  assert.equal(rainTimeLabel(["2026-08-12T20:00"], [10]), "24时无雨");
+  assert.equal(rainTimeLabel(["2026-08-12T23:00"], [10]), "今日无雨");
 });
 
 test("does not request weather until both coordinates are configured", async () => {
@@ -243,6 +244,7 @@ test("uses APFS container capacity for Macintosh HD storage", () => {
 
 test("keeps the date visible and omits the clock when weather is unavailable", () => {
   const html = renderDashboard({
+    layout: "weather",
     now: new Date("2026-08-12T02:36:00Z"),
     weather: null,
   });
@@ -253,6 +255,7 @@ test("keeps the date visible and omits the clock when weather is unavailable", (
   assert.doesNotMatch(html, /10:36/);
 
   const unconfiguredHtml = renderDashboard({
+    layout: "weather",
     now: new Date("2026-08-12T02:36:00Z"),
     weather: null,
     weatherConfigured: false,
@@ -488,6 +491,9 @@ test("protects admin and device routes while keeping update files public", async
     assert.equal(frameResponse.status, 200);
     assert.equal(frameResponse.headers["content-type"], "image/png");
     assert.equal(frameResponse.headers.etag, '"mock-frame"');
+    assert.equal(frameResponse.headers["x-dashboard-refresh-seconds"], "60");
+    assert.equal(frameResponse.headers["x-dashboard-align"], "1");
+    assert.match(frameResponse.headers["x-dashboard-server-epoch"], /^\d+$/);
     assert.equal(frameResponse.text, "mock png bytes");
     assert.equal(frameCalls, 1);
     const notModified = await dispatch(server, {
@@ -495,9 +501,43 @@ test("protects admin and device routes while keeping update files public", async
       headers: { ...deviceHeaders, "If-None-Match": '"mock-frame"' },
     });
     assert.equal(notModified.status, 304);
+    assert.equal(notModified.headers["x-dashboard-refresh-seconds"], "60");
     assert.equal(frameCalls, 2);
     assert.equal((await dispatch(server, { url: "/frame.png", headers: adminHeaders })).status, 200);
   } finally {
     await rm(logDirectory, { recursive: true, force: true });
   }
+});
+
+test("a render crossing a minute boundary serves the new minute rather than an already-old clock", async () => {
+  let current = new Date("2026-11-01T08:38:59Z");
+  const renders = [];
+  const server = createDashboardServer({
+    deviceToken:"test-token", adminUser:"admin", adminPassword:"test-password", layout:"clock",
+  }, {
+    now: () => current,
+    getWeather: async () => null,
+    getSystemStatus: async () => null,
+    renderDashboard: ({now}) => { renders.push(now.toISOString()); return now.toISOString(); },
+    getFramePng: async (html) => {
+      current = new Date("2026-11-01T08:39:02Z");
+      return {png:Buffer.from(html),etag:'"clock"',stale:false};
+    },
+  });
+  const response = await dispatch(server,{url:"/frame.png",headers:{"X-Device-Token":"test-token"}});
+  assert.equal(response.status,200);
+  assert.deepEqual(renders,["2026-11-01T08:38:59.000Z","2026-11-01T08:39:02.000Z"]);
+  assert.equal(response.text,"2026-11-01T08:39:02.000Z");
+});
+
+test("restoring the weather layout also restores its service-advertised thirty-minute cadence", async () => {
+  const server = createDashboardServer({deviceToken:"test-token",adminUser:"admin",adminPassword:"test-password",layout:"weather"}, {
+    getWeather:async()=>null,getSystemStatus:async()=>null,
+    getFramePng:async(html)=>({png:Buffer.from(html),etag:'"weather"',stale:false}),
+  });
+  const response=await dispatch(server,{url:"/frame.png",headers:{"X-Device-Token":"test-token"}});
+  assert.equal(response.status,200);
+  assert.equal(response.headers["x-dashboard-refresh-seconds"],"1800");
+  assert.equal(response.headers["x-dashboard-align"],"0");
+  assert.match(response.text,/>CPU</);assert.doesNotMatch(response.text,/class="kb-time"/);
 });

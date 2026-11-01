@@ -13,6 +13,22 @@ HEADER_FILE="$STATE_DIR/frame.headers"
 ETAG_FILE="$STATE_DIR/frame.etag"
 FRAME_URL="${DASHBOARD_BASE_URL%/}/frame.png"
 
+save_server_timing() {
+  [ -s "$HEADER_FILE" ] || return 0
+  timing_seconds="$(awk 'tolower($1)=="x-dashboard-refresh-seconds:" { gsub(/\r/, "", $2); value=$2 } END { print value }' "$HEADER_FILE")"
+  timing_align="$(awk 'tolower($1)=="x-dashboard-align:" { gsub(/\r/, "", $2); value=$2 } END { print value }' "$HEADER_FILE")"
+  timing_epoch="$(awk 'tolower($1)=="x-dashboard-server-epoch:" { gsub(/\r/, "", $2); value=$2 } END { print value }' "$HEADER_FILE")"
+  case "$timing_seconds" in ''|*[!0-9]*) return 0 ;; esac
+  [ "${#timing_seconds}" -le 5 ] || return 0
+  [ "$timing_seconds" -ge 60 ] && [ "$timing_seconds" -le 86400 ] || return 0
+  case "$timing_align" in 0|1) ;; *) return 0 ;; esac
+  case "$timing_epoch" in ''|*[!0-9]*) return 0 ;; esac
+  [ "${#timing_epoch}" -ge 9 ] && [ "${#timing_epoch}" -le 10 ] || return 0
+  printf '%s\n' "$timing_seconds" > "$STATE_DIR/refresh-seconds.tmp" && mv -f "$STATE_DIR/refresh-seconds.tmp" "$STATE_DIR/refresh-seconds"
+  printf '%s\n' "$timing_align" > "$STATE_DIR/refresh-align.tmp" && mv -f "$STATE_DIR/refresh-align.tmp" "$STATE_DIR/refresh-align"
+  printf '%s\n' "$((timing_epoch - $(date +%s)))" > "$STATE_DIR/server-offset.tmp" && mv -f "$STATE_DIR/server-offset.tmp" "$STATE_DIR/server-offset"
+}
+
 rm -f "$TEMP_FILE" "$HEADER_FILE"
 log_message "frame: fetching $FRAME_URL"
 
@@ -32,6 +48,7 @@ if command -v curl >/dev/null 2>&1; then
   fetch_result=$?
   http_status="$(awk '/^HTTP\// { code=$2 } END { print code }' "$HEADER_FILE" 2>/dev/null)"
   if [ "$fetch_result" -eq 0 ] && [ "$http_status" = "304" ]; then
+    save_server_timing
     rm -f "$TEMP_FILE" "$HEADER_FILE"
     log_message "frame: unchanged (HTTP 304)"
     exit 10
@@ -51,6 +68,8 @@ if [ "$fetch_result" -ne 0 ] || ! valid_png "$TEMP_FILE"; then
   rm -f "$TEMP_FILE" "$HEADER_FILE"
   exit 3
 fi
+
+save_server_timing
 
 if [ -f "$FRAME_FILE" ] && cmp -s "$TEMP_FILE" "$FRAME_FILE"; then
   rm -f "$TEMP_FILE"
