@@ -36,3 +36,11 @@
 - Backed up private settings under runtime/backups/full-refresh-15-20261101/; retained old immutable snapshots. Staged 1.0.8 and restarted the existing local.kindle-dashboard job. Live frame headers confirm refresh=60, align=1, full_every=15.
 - Updated PW4 through its authenticated update channel. Uploaded log confirms version=1.0.8 startup at 22:23:42 device time, successful display count=3531 at 22:23:57, and timing refresh=60s align=1 full_every=15 server_offset=6.
 - Device setting and FBInk success are verified. No claim of a complete live 15-minute observation or physical-screen visual acceptance.
+
+## Public release verification
+- User authorized publication of v1.0.8 after checks. Refetched origin; main remains the expected ancestor, with no intervening upstream changes.
+- Re-ran all 35 tests successfully, shell syntax for bin/lib, menu JSON, public-content scan and diff whitespace checks.
+- Built and inspected the v1.0.8 ZIP: 21 packaged files, no device config.sh, no .env/runtime/state/log data, executable bin scripts retained. All three retained/current reference PNGs are 1072×1448; visually inspected the approved v3 reference for clipping, wrapping and separator overlap.
+- Live frame remains 1072×1448, fresh (stale=0), with refresh=60, align=1 and full_every=15; a subsequent HTTP 304 also carries the full-clear setting.
+- Fresh device log confirms successful minute updates under 1.0.8 and an actual full clear at device time 22:33:58 (successful count 3541 after displaying, previous count 3540 divisible by 15). Visually inspected the live 22:34 PNG as well as the fixed reference; both retain readable clock, current weather, forecast and Mac status without overlap.
+- Scanned every tracked blob in both unpublished implementation commits against configured private credentials, device token and precise coordinates without printing those values; no matches.

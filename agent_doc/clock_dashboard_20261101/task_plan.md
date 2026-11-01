@@ -35,3 +35,6 @@ No browser runtime on Kindle, no autostart changes, no GUI recovery redesign, no
 User authorized changing the normal full-clear cadence to 15 minutes. Continue the existing clock rollout: add a validated full-clear count to the existing timing-header channel (15 in clock mode; 0 releases it in legacy weather mode), retain private config as fallback, release client 1.0.8 under the same 17-file manifest, update docs and verify device logs show refresh=60 / full_every=15. No renderer or lifecycle recovery changes are needed.
 
 Completed: client 1.0.8 deployed and uploaded PW4 logs confirm 60-second aligned updates with full_every=15. Required quality gate passed (35 tests).
+
+## Public release follow-up
+The user explicitly authorized checking and publishing this version. This supersedes the earlier no-public-release non-goal for this follow-up. Verify source and client package, confirm current device behavior, publish v1.0.8 with the client ZIP and SHA-256 checksum, and verify the published assets and matching commit CI.

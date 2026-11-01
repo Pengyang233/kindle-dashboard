@@ -12,11 +12,11 @@
 
 ## 当前版本
 
-[v1.0.6](https://github.com/Pengyang233/kindle-dashboard/releases/tag/v1.0.6) 已在 Kindle Paperwhite 4、固件 5.18.1.1.1、KUAL 和 FBInk 组合上完成实机验证。其他 Kindle 型号和固件尚未验证；完整范围见[发布状态说明](docs/release-status.md)。
+[v1.0.8](https://github.com/Pengyang233/kindle-dashboard/releases/tag/v1.0.8) 已在 Kindle Paperwhite 4、固件 5.18.1.1.1、KUAL 和 FBInk 组合上完成实机验证。其他 Kindle 型号和固件尚未验证；完整范围见[发布状态说明](docs/release-status.md)。
 
-当前工作区新增时钟模板：大号 12 小时制时分、节日优先的节气栏、天气与三日文字预报，以及 Mac 的 CPU、内存和磁盘状态。旧版无时钟模板完整保留，可设置 `DASHBOARD_LAYOUT=weather` 恢复。时钟模板每分钟对齐整分取图；每 15 次成功显示额外完全清屏一次，约 15 分钟。完整设置和恢复方法见[时钟与刷新说明](docs/clock-refresh.md)。
+v1.0.8 新增时钟模板：大号 12 小时制时分、节日优先的节气栏、天气与三日文字预报，以及 Mac 的 CPU、内存和磁盘状态。旧版无时钟模板完整保留，可设置 `DASHBOARD_LAYOUT=weather` 恢复。时钟模板每分钟对齐整分取图；每 15 次成功显示额外完全清屏一次，约 15 分钟。完整设置和恢复方法见[时钟与刷新说明](docs/clock-refresh.md)。
 
-天气每 15 分钟在后台更新；国标 AQI 使用中国环境监测总站的城市实时发布数据，避免将美标数值直接套用国标等级。网络或渲染失败仍会保留上一张有效画面。当前客户端工作版本为 1.0.8，尚未发布为新的 GitHub Release。
+天气每 15 分钟在后台更新；国标 AQI 使用中国环境监测总站的城市实时发布数据，避免将美标数值直接套用国标等级。网络或渲染失败仍会保留上一张有效画面。当前客户端版本为 1.0.8；安装包和升级说明见 [Release](https://github.com/Pengyang233/kindle-dashboard/releases/tag/v1.0.8)。
 
 ## 需要准备什么
 
