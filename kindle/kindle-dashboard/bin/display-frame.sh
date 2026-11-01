@@ -18,7 +18,8 @@ fi
 display_count="$(read_number_file "$COUNT_FILE")"
 case "$display_count" in ''|*[!0-9]*) display_count=0 ;; esac
 
-if [ "$display_count" -eq 0 ] || [ $((display_count % FULL_REFRESH_EVERY)) -eq 0 ]; then
+full_cadence="$(full_refresh_every)"
+if [ "$display_count" -eq 0 ] || [ $((display_count % full_cadence)) -eq 0 ]; then
   "$FBINK" -f -c >> "$LOG_FILE" 2>&1 || exit $?
   refresh_mode="full"
 else
@@ -31,5 +32,5 @@ if [ "$display_result" -eq 0 ]; then
   display_count=$((display_count + 1))
   printf '%s\n' "$display_count" > "$COUNT_FILE.tmp" && mv -f "$COUNT_FILE.tmp" "$COUNT_FILE"
 fi
-log_message "display: result=$display_result mode=$refresh_mode count=$display_count"
+log_message "display: result=$display_result mode=$refresh_mode count=$display_count full_every=$full_cadence"
 exit "$display_result"

@@ -23,3 +23,8 @@
 - The existing weather cache is valid PNG/input fallback but lacks the new hourly series. During this outage, v3 displays cached weather and an explicit missing-rain-data label; it must not invent today's no-rain status.
 - National AQI refresh now remains independent when the weather response fails; the existing weather timestamp is preserved. A regression test covers this cross-provider fallback.
 - Auto-review required explicit permission for continuing the configured coordinate-bearing Open-Meteo requests. User explicitly authorized continuing the existing coordinates and Open-Meteo; subsequent networking is authorized. CNEMC requests contain no coordinates.
+
+## 15-minute full-clear follow-up
+- User selected approximately 15 minutes between full clears. Existing device-private config can retain 12, so merely changing the shell default would not reliably apply the request.
+- Client 1.0.8 accepts a validated numeric full-refresh header from the Mac; clock sends 15, weather sends 0 to restore the private fallback. No new distributed filenames or device config replacement.
+- Counter remains based on successful displays and survives upgrade; the first full clear after changing cadence can occur earlier than 15 minutes. Normal GC16 updates and lifecycle recovery remain intact.

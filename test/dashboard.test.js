@@ -493,6 +493,7 @@ test("protects admin and device routes while keeping update files public", async
     assert.equal(frameResponse.headers.etag, '"mock-frame"');
     assert.equal(frameResponse.headers["x-dashboard-refresh-seconds"], "60");
     assert.equal(frameResponse.headers["x-dashboard-align"], "1");
+    assert.equal(frameResponse.headers["x-dashboard-full-refresh-every"], "15");
     assert.match(frameResponse.headers["x-dashboard-server-epoch"], /^\d+$/);
     assert.equal(frameResponse.text, "mock png bytes");
     assert.equal(frameCalls, 1);
@@ -502,6 +503,7 @@ test("protects admin and device routes while keeping update files public", async
     });
     assert.equal(notModified.status, 304);
     assert.equal(notModified.headers["x-dashboard-refresh-seconds"], "60");
+    assert.equal(notModified.headers["x-dashboard-full-refresh-every"], "15");
     assert.equal(frameCalls, 2);
     assert.equal((await dispatch(server, { url: "/frame.png", headers: adminHeaders })).status, 200);
   } finally {
@@ -539,5 +541,6 @@ test("restoring the weather layout also restores its service-advertised thirty-m
   assert.equal(response.status,200);
   assert.equal(response.headers["x-dashboard-refresh-seconds"],"1800");
   assert.equal(response.headers["x-dashboard-align"],"0");
+  assert.equal(response.headers["x-dashboard-full-refresh-every"],"0");
   assert.match(response.text,/>CPU</);assert.doesNotMatch(response.text,/class="kb-time"/);
 });

@@ -381,6 +381,7 @@ export function createDashboardServer(config, services = {}) {
           "X-Dashboard-Refresh-Seconds": effectiveConfig.layout === "weather" ? "1800" : "60",
           "X-Dashboard-Align": effectiveConfig.layout === "weather" ? "0" : "1",
           "X-Dashboard-Server-Epoch": String(Math.floor(Date.now() / 1000)),
+          "X-Dashboard-Full-Refresh-Every": effectiveConfig.layout === "weather" ? "0" : String(effectiveConfig.fullRefreshEvery ?? 15),
         };
         if (request.headers["if-none-match"] === frame.etag) {
           response.writeHead(304, { ETag: frame.etag, ...timingHeaders });

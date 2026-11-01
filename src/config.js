@@ -149,6 +149,10 @@ export function validateServerConfig(env = process.env) {
   const timezone = source.DASHBOARD_TIMEZONE?.trim() || "Asia/Shanghai";
   const layout = source.DASHBOARD_LAYOUT?.trim() || "clock";
   if (!["clock", "weather"].includes(layout)) throw new Error("DASHBOARD_LAYOUT must be clock or weather");
+  const fullRefreshEvery = Number(source.DASHBOARD_FULL_REFRESH_EVERY ?? 15);
+  if (!Number.isInteger(fullRefreshEvery) || fullRefreshEvery < 1 || fullRefreshEvery > 1440) {
+    throw new Error("DASHBOARD_FULL_REFRESH_EVERY must be an integer from 1 to 1440");
+  }
   try {
     new Intl.DateTimeFormat("en-US", { timeZone: timezone }).format(new Date(0));
   } catch {
@@ -172,6 +176,7 @@ export function validateServerConfig(env = process.env) {
     city: source.DASHBOARD_CITY?.trim() || "当地",
     timezone,
     layout,
+    fullRefreshEvery,
     airQualityCity: source.AIR_QUALITY_CITY?.trim() || source.DASHBOARD_CITY?.trim() || "",
   };
 }

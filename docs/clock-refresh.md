@@ -14,8 +14,9 @@ The Mac includes numeric timing headers with each authenticated frame response, 
 - `X-Dashboard-Refresh-Seconds`: 60 for clock, 1800 for v2 weather.
 - `X-Dashboard-Align`: 1 for clock, 0 for weather.
 - `X-Dashboard-Server-Epoch`: the current Mac epoch in seconds.
+- `X-Dashboard-Full-Refresh-Every`: 15 for clock by default; 0 for weather, which restores the device-local fallback.
 
-Client 1.0.7 validates these fields and saves them under its runtime `state/` directory. It does not overwrite private `config.sh`. Without valid timing headers, it retains the previous valid schedule or falls back to `REFRESH_SECONDS` in device config (default 1800).
+Client 1.0.8 validates these fields and saves them under its runtime `state/` directory. It does not overwrite private `config.sh`. Without valid timing headers, it retains the previous valid schedule or falls back to `REFRESH_SECONDS` in device config (default 1800).
 
 Clock downloads are scheduled on whole minute boundaries of Mac time. The device compensates for its clock's epoch offset using the server header without changing the Kindle system clock. It sleeps only until the earlier of its next command poll or frame boundary. Download/render/display time does not accumulate into the next boundary. A manual refresh also leaves the next whole-minute boundary intact.
 
@@ -25,15 +26,14 @@ Weather is cached for 15 minutes, then refreshed in the background so an unavail
 
 ## Ordinary image update and full clearing
 
-`bin/display-frame.sh` uses GC16 for every successful image update. `FULL_REFRESH_EVERY` in the Kindle's private `config.sh` controls the extra full clear (`fbink -f -c`) before displaying the image. Its default remains **12**.
+`bin/display-frame.sh` uses GC16 for ordinary image updates. For the clock, the Mac advertises `DASHBOARD_FULL_REFRESH_EVERY=15`, causing an extra full clear (`fbink -f -c`) every **15 successful displays**, approximately **15 minutes** with minute updates. This server setting accepts integers from 1 to 1440; restart the Mac service after changing it. The client adopts it on the next valid frame response without a device restart.
 
 - A count of 0 triggers a full clear.
-- The persisted successful-display count triggers the next clear each 12 images.
-- With one changed frame per minute this is approximately **12 minutes** between full clears, not a fixed wall-clock schedule.
+- The persisted successful-display count triggers the next clear at each multiple of 15.
 - Manual image updates count; failed downloads, HTTP 304, unchanged images and failed FBInk calls do not count as successful new displays.
-- The counter survives client updates/restarts, so deployment does not promise an immediate full clear or restart the 12-image cycle.
+- The counter survives client updates/restarts. Changing the interval does not reset it, so the first clear after a change may occur sooner than 15 minutes.
 
-Examples for device-local `config.sh`: `FULL_REFRESH_EVERY=5` gives approximately five minutes; `FULL_REFRESH_EVERY=12` gives approximately twelve. Keep it a positive integer. Changing this setting requires a dashboard restart. Only change it when explicitly desired; this rollout retains 12.
+Private Kindle `config.sh` is preserved. Its `FULL_REFRESH_EVERY` remains the fallback (default 12) when no server override is available, or when the weather layout explicitly releases the override with 0. Normal weather updates remain every 1800 seconds; its full-clear interval is therefore count-based rather than 15 minutes.
 
 Command polling remains every 15 seconds, with the sleep shortened near a minute boundary. It controls update/stop/refresh command latency, not the clock cadence.
 
@@ -51,7 +51,7 @@ Rain: current rain/snow takes precedence. Otherwise find the first future hourly
 2. Restart the existing launchd job: `launchctl kickstart -k "gui/$(id -u)/local.kindle-dashboard"`.
 3. Send “立即刷新” from the authenticated control page. The next downloaded frame restores v2; the client then adopts its service-advertised 1800-second cadence.
 
-To return to the clock, set `DASHBOARD_LAYOUT=clock`, restart the service and request one refresh. Client 1.0.7 supports both layouts, so a client downgrade is unnecessary.
+To return to the clock, set `DASHBOARD_LAYOUT=clock`, restart the service and request one refresh. Client 1.0.8 supports both layouts, so a client downgrade is unnecessary.
 
 The prior private Mac configuration and client-snapshot selection were backed up under the ignored local `runtime/backups/clock-dashboard-20261101/` directory. Do not publish or copy those files into a release. The previous immutable client snapshot is retained under `runtime/client-releases/`; the Kindle updater also keeps its own previous-release rollback directory.
 

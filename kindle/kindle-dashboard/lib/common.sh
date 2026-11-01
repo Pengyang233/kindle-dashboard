@@ -161,6 +161,14 @@ read_number_file() {
 }
 
 # The Mac may select the clock cadence without replacing device-local config.sh.
+full_refresh_every() {
+  full_cadence="$(cat "$STATE_DIR/full-refresh-every" 2>/dev/null)"
+  case "$full_cadence" in ''|*[!0-9]*|0) full_cadence="$FULL_REFRESH_EVERY" ;; esac
+  case "$full_cadence" in ''|*[!0-9]*) full_cadence=12 ;; esac
+  if [ "$full_cadence" -lt 1 ] || [ "$full_cadence" -gt 1440 ]; then full_cadence=12; fi
+  printf '%s\n' "$full_cadence"
+}
+
 refresh_seconds() {
   cadence="$(cat "$STATE_DIR/refresh-seconds" 2>/dev/null)"
   case "$cadence" in ''|*[!0-9]*) cadence="$REFRESH_SECONDS" ;; esac

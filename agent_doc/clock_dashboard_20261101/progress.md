@@ -29,3 +29,10 @@
 - Visually inspected the live PNG and fixed-data PNG, both 1072x1448. Old v1/v2 reference PNGs have no Git diff, and v2 renderer/cadence restoration has a regression test.
 - Final quality gate: 34 tests pass; client Shell syntax, menu JSON, public-content scan and git diff --check pass. Full-clear cadence/failure counters were verified in tests; live startup confirms device setting 12. Physical-screen human acceptance is not claimed from logs alone.
 - The requested rollout and documentation are complete. Source/archive changes will be recorded together in one local commit; no remote push or release publication is part of this task.
+
+## 15-minute full-clear rollout
+- Added the server-selected full-clear interval, default 15 for clock, and client 1.0.8 runtime adoption. Retained private device config and exact 17-file updater allowlist.
+- Quality gate: 35/35 tests, all bin/lib shell syntax, menu JSON, public-content check and git diff --check passed. Tests verify both 12-image fallback and 15-image override cycles plus failed FBInk counters.
+- Backed up private settings under runtime/backups/full-refresh-15-20261101/; retained old immutable snapshots. Staged 1.0.8 and restarted the existing local.kindle-dashboard job. Live frame headers confirm refresh=60, align=1, full_every=15.
+- Updated PW4 through its authenticated update channel. Uploaded log confirms version=1.0.8 startup at 22:23:42 device time, successful display count=3531 at 22:23:57, and timing refresh=60s align=1 full_every=15 server_offset=6.
+- Device setting and FBInk success are verified. No claim of a complete live 15-minute observation or physical-screen visual acceptance.

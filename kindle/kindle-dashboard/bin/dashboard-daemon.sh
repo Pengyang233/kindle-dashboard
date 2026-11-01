@@ -146,7 +146,7 @@ prepare_display
 sh "$EXTENSION_DIR/bin/display-frame.sh" || exit $?
 last_server_contact="$(date +%s)"
 next_refresh="$(next_refresh_epoch "$last_server_contact")"
-log_message "timing: refresh=$(refresh_seconds)s align=$(cat "$STATE_DIR/refresh-align" 2>/dev/null) full_every=$FULL_REFRESH_EVERY next=$next_refresh server_offset=$(cat "$STATE_DIR/server-offset" 2>/dev/null)"
+log_message "timing: refresh=$(refresh_seconds)s align=$(cat "$STATE_DIR/refresh-align" 2>/dev/null) full_every=$(full_refresh_every) next=$next_refresh server_offset=$(cat "$STATE_DIR/server-offset" 2>/dev/null)"
 
 while [ "$requested_action" = "run" ]; do
   if [ -f "$STATE_DIR/stop-requested" ] || battery_requires_exit; then

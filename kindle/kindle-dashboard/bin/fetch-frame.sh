@@ -27,6 +27,11 @@ save_server_timing() {
   printf '%s\n' "$timing_seconds" > "$STATE_DIR/refresh-seconds.tmp" && mv -f "$STATE_DIR/refresh-seconds.tmp" "$STATE_DIR/refresh-seconds"
   printf '%s\n' "$timing_align" > "$STATE_DIR/refresh-align.tmp" && mv -f "$STATE_DIR/refresh-align.tmp" "$STATE_DIR/refresh-align"
   printf '%s\n' "$((timing_epoch - $(date +%s)))" > "$STATE_DIR/server-offset.tmp" && mv -f "$STATE_DIR/server-offset.tmp" "$STATE_DIR/server-offset"
+  timing_full="$(awk 'tolower($1)=="x-dashboard-full-refresh-every:" { gsub(/\r/, "", $2); value=$2 } END { print value }' "$HEADER_FILE")"
+  case "$timing_full" in ''|*[!0-9]*) return 0 ;; esac
+  [ "${#timing_full}" -le 4 ] && [ "$timing_full" -le 1440 ] || return 0
+  # Zero releases the clock override when restoring the older weather layout.
+  printf '%s\n' "$timing_full" | awk '{printf "%d\n", $0 + 0}' > "$STATE_DIR/full-refresh-every.tmp" && mv -f "$STATE_DIR/full-refresh-every.tmp" "$STATE_DIR/full-refresh-every"
 }
 
 rm -f "$TEMP_FILE" "$HEADER_FILE"
